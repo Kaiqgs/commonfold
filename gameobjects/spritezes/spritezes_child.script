@@ -1,0 +1,12 @@
+local sprite_url = "#sprite"
+
+go.property("image", resource.tile_source())
+go.property("material", resource.material())
+
+function init(self)
+    print(self.image)
+    print(self.material)
+    go.set(sprite_url, "image", self.image)
+    go.set(sprite_url, "material", self.material)
+    self.original_z = go.get_position().z
+end

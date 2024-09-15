@@ -1,0 +1,40 @@
+name: "sprite"
+tags: "tile"
+vertex_program: "/common/materials/programs/back_noise.vp"
+fragment_program: "/common/materials/programs/back_noise.fp"
+vertex_space: VERTEX_SPACE_WORLD
+vertex_constants {
+  name: "view_proj"
+  type: CONSTANT_TYPE_VIEWPROJ
+}
+fragment_constants {
+  name: "u_time"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 0.0
+  }
+}
+fragment_constants {
+  name: "base_color"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 0.38431373
+    y: 0.36862746
+    z: 0.3764706
+    w: 1.0
+  }
+}
+fragment_constants {
+  name: "color"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 0.6
+    y: 0.5686275
+    z: 0.44705883
+    w: 1.0
+  }
+}
+max_page_count: 0

@@ -1,0 +1,49 @@
+local util = require("common.util")
+local proxy_url = "#collectionproxy"
+function init(self)
+    msg.post(".", "acquire_input_focus")
+end
+
+local function load()
+    msg.post(proxy_url, "init")
+    msg.post(proxy_url, "enable")
+end
+
+local function finish_unload()
+    msg.post(proxy_url, "disable")
+    msg.post(proxy_url, "final")
+    msg.post(proxy_url, "unload")
+end
+
+local function start_load()
+    msg.post(proxy_url, "load")
+end
+
+local message_mapping = {
+    [hash("start")] = function(self, message_id, message, sender)
+        start_load()
+        self.loader = sender
+    end,
+    [hash("finish")] = function(self, message_id, message, sender)
+        finish_unload()
+        self.unloader = sender
+    end,
+    [hash("proxy_loaded")] = function(self, message_id, message, sender)
+        load()
+        msg.post(self.loader, message_id)
+    end,
+    [hash("proxy_unloaded")] = function(self, message_id, message, sender)
+        msg.post(self.unloader, message_id)
+    end,
+    [hash("set_time_step")] = function (self, message_id, message, sender)
+        msg.post(proxy_url, message_id, message)
+    end
+}
+
+on_message = util.on_message_map(message_mapping)
+
+function final(self)
+    finish_unload()
+end
+
+function on_reload(self) end

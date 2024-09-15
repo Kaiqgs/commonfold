@@ -1,0 +1,328 @@
+local camera = require("orthographic.camera")
+
+camera.ORTHOGRAPHIC_RENDER_SCRIPT_USED = true
+
+local CLEAR_COLOR = hash("clear_color")
+local AMBIENT_COLOR = hash("ambient_color")
+
+local IDENTITY = vmath.matrix4()
+
+function init(self)
+    self.tile_pred = render.predicate({ "tile" })
+    self.gui_pred = render.predicate({ "gui" })
+    self.text_pred = render.predicate({ "debug_text" })
+    self.particle_pred = render.predicate({ "particle" })
+    self.particle_early_pred = render.predicate({ "particle_early" })
+    self.overlay_pred = render.predicate({ "overlay" })
+    -- quad is output of render
+    self.quad_pred = render.predicate({ "quad" })
+    self.lights_pred = render.predicate({ "lights" })
+    self.sprites_pred = render.predicate({ "sprites" })
+
+    self.clear_color = vmath.vector4(0, 0, 0, 0)
+    self.clear_color.x = sys.get_config("render.clear_color_red", 0)
+    self.clear_color.y = sys.get_config("render.clear_color_green", 0)
+    self.clear_color.z = sys.get_config("render.clear_color_blue", 0)
+    self.clear_color.w = sys.get_config("render.clear_color_alpha", 0)
+
+    self.ambient_color = vmath.vector4(1, 1, 1, 1)
+    self.sprites_color = vmath.vector4(0.0, 0.0, 0., 0.)
+
+    self.original_width = render.get_window_width()
+    self.original_height = render.get_window_height()
+
+    local color_params = {
+        format = render.FORMAT_RGBA,
+        width = self.original_width,
+        height = self.original_height,
+        min_filter = render.FILTER_LINEAR,
+        mag_filter = render.FILTER_LINEAR,
+        u_wrap = render.WRAP_CLAMP_TO_EDGE,
+        v_wrap = render.WRAP_CLAMP_TO_EDGE,
+    }
+
+    local parameters = {
+        [render.BUFFER_COLOR_BIT] = color_params,
+    }
+    self.world_render_target = render.render_target("world", parameters)
+    self.lights_render_target = render.render_target("lights", parameters)
+    self.sprites_render_target = render.render_target("sprites", parameters)
+    self.gui_render_target = render.render_target("gui", parameters)
+end
+
+local function clear_to(clear_color)
+    render.set_depth_mask(true)
+    render.set_stencil_mask(0xff)
+    render.clear({
+        [render.BUFFER_COLOR_BIT] = clear_color,
+        [render.BUFFER_DEPTH_BIT] = 1,
+        [render.BUFFER_STENCIL_BIT] = 0,
+    })
+    render.set_depth_mask(false)
+end
+
+local function default_draw(self)
+    clear_to(self.clear_color)
+
+    -- set default blend state
+    render.enable_state(render.STATE_BLEND)
+    render.set_blend_func(render.BLEND_SRC_ALPHA, render.BLEND_ONE_MINUS_SRC_ALPHA)
+
+    -- draw world per camera
+    local cameras = camera.get_cameras()
+    local frustum = nil
+    local view = nil
+    local proj = nil
+    if #cameras > 0 then
+        render.disable_state(render.STATE_DEPTH_TEST)
+        render.disable_state(render.STATE_CULL_FACE)
+        render.disable_state(render.STATE_STENCIL_TEST)
+        for _, camera_id in ipairs(cameras) do
+            local viewport = camera.get_viewport(camera_id)
+            render.set_viewport(viewport.x, viewport.y, viewport.z, viewport.w)
+            view = camera.get_view(camera_id)
+            render.set_view(view)
+            proj = camera.get_projection(camera_id)
+            render.set_projection(proj)
+            frustum = proj * view
+            -- print("cam, ", camera_id)
+            -- pprint({
+            --     view = view,
+            --     proj = proj,
+            --     frustum = frustum,
+            -- })
+            render.draw(self.particle_early_pred, { frustum = frustum })
+            render.draw(self.tile_pred, { frustum = frustum })
+            render.draw(self.particle_pred, { frustum = frustum })
+            -- render.draw(self.overlay_pred, { frustum = frustum })
+            render.draw_debug3d()
+        end
+    end
+end
+
+local function lights_draw(self, width, height)
+    clear_to(self.ambient_color)
+
+    -- set default blend state
+    render.enable_state(render.STATE_BLEND)
+    render.set_blend_func(render.BLEND_SRC_ALPHA, render.BLEND_ONE_MINUS_SRC_ALPHA)
+
+    -- draw world per camera
+    local cameras = camera.get_cameras()
+    local frustum = nil
+    local view = nil
+    local proj = nil
+    if #cameras > 0 then
+        render.disable_state(render.STATE_DEPTH_TEST)
+        render.disable_state(render.STATE_CULL_FACE)
+        render.disable_state(render.STATE_STENCIL_TEST)
+        for _, camera_id in ipairs(cameras) do
+            local viewport = camera.get_viewport(camera_id)
+            render.set_viewport(viewport.x, viewport.y, viewport.z, viewport.w)
+            view = camera.get_view(camera_id)
+            render.set_view(view)
+            proj = camera.get_projection(camera_id)
+            render.set_projection(proj)
+            frustum = proj * view
+            -- print("cam, ", camera_id)
+            -- pprint({
+            --     view = view,
+            --     proj = proj,
+            --     frustum = frustum,
+            -- })
+            render.draw(self.lights_pred, { frustum = frustum })
+            -- render.draw(self.particle_pred, { frustum = frustum })
+            -- render.draw_debug3d()
+        end
+    end
+end
+-- local function overlay_draw(self, width, height)
+--     clear_to(self.ambient_color)
+--
+--     -- set default blend state
+--     render.enable_state(render.STATE_BLEND)
+--     render.set_blend_func(render.BLEND_SRC_ALPHA, render.BLEND_ONE_MINUS_SRC_ALPHA)
+--
+--     -- draw world per camera
+--     local cameras = camera.get_cameras()
+--     local frustum = nil
+--     local view = nil
+--     local proj = nil
+--     if #cameras > 0 then
+--         render.disable_state(render.STATE_DEPTH_TEST)
+--         render.disable_state(render.STATE_CULL_FACE)
+--         render.disable_state(render.STATE_STENCIL_TEST)
+--         for _, camera_id in ipairs(cameras) do
+--             local viewport = camera.get_viewport(camera_id)
+--             render.set_viewport(viewport.x, viewport.y, viewport.z, viewport.w)
+--             view = camera.get_view(camera_id)
+--             render.set_view(view)
+--             proj = camera.get_projection(camera_id)
+--             render.set_projection(proj)
+--             frustum = proj * view
+--             -- print("cam, ", camera_id)
+--             -- pprint({
+--             --     view = view,
+--             --     proj = proj,
+--             --     frustum = frustum,
+--             -- })
+--             render.draw(self.overlay_pred, { frustum = frustum })
+--             -- render.draw(self.particle_pred, { frustum = frustum })
+--             -- render.draw_debug3d()
+--         end
+--     end
+-- end
+function gui_draw(self, window_width, window_height)
+    clear_to(vmath.vector4())
+    -- draw gui in screen space using an orthographic projection
+    render.disable_state(render.STATE_DEPTH_TEST)
+    render.disable_state(render.STATE_CULL_FACE)
+    render.enable_state(render.STATE_STENCIL_TEST)
+    render.set_viewport(0, 0, window_width, window_height)
+    local view = IDENTITY
+    render.set_view(view)
+    local proj = vmath.matrix4_orthographic(0, window_width, 0, window_height, -1, 1)
+    render.set_projection(proj)
+    local frustum = proj * view
+    render.draw(self.gui_pred, { frustum = frustum })
+    render.draw(self.text_pred, { frustum = frustum })
+    -- render.draw(self.overlay_pred, { frustum = frustum })
+    render.disable_state(render.STATE_STENCIL_TEST)
+end
+
+local function gui_draw_2(self, window_width, window_height)
+    clear_to(vmath.vector4())
+
+    -- set default blend state
+    -- render.enable_state(render.STATE_BLEND)
+    -- render.set_blend_func(render.BLEND_SRC_ALPHA, render.BLEND_ONE_MINUS_SRC_ALPHA)
+    local lowrez_projection = vmath.matrix4_orthographic(0, window_width, 0, window_height, -1, 1)
+
+    -- draw world per camera
+    local cameras = camera.get_cameras()
+    local frustum = nil
+    local view = nil
+    local proj = nil
+    if #cameras > 0 then
+        for _, camera_id in ipairs(cameras) do
+            -- render.disable_state(render.STATE_DEPTH_TEST)
+            -- render.disable_state(render.STATE_CULL_FACE)
+            render.enable_state(render.STATE_STENCIL_TEST)
+            -- render.set_viewport(0, 0, window_width, window_height)
+            local viewport = camera.get_viewport(camera_id)
+            render.set_viewport(viewport.x, viewport.y, viewport.z, viewport.w)
+            view = camera.get_view(camera_id)
+            view = IDENTITY
+            render.set_view(view)
+            proj = camera.get_projection(camera_id)
+            proj = lowrez_projection
+            render.set_projection(proj)
+            frustum = proj * view
+            -- print("cam, ", camera_id)
+            -- pprint({
+            --     view = view,
+            --     proj = proj,
+            --     frustum = frustum,
+            -- })
+            render.draw(self.gui_pred)
+            render.draw(self.text_pred)
+            render.disable_state(render.STATE_STENCIL_TEST)
+            -- render.draw(self.particle_pred, { frustum = frustum })
+            -- render.draw_debug3d()
+        end
+    end
+end
+
+local function sprites_draw(self, _, _)
+    clear_to(self.sprites_color)
+
+    -- set default blend state
+    render.enable_state(render.STATE_BLEND)
+    render.set_blend_func(render.BLEND_SRC_ALPHA, render.BLEND_ONE_MINUS_SRC_ALPHA)
+
+    -- draw world per camera
+    local cameras = camera.get_cameras()
+    local frustum = nil
+    local view = nil
+    local proj = nil
+    if #cameras > 0 then
+        render.disable_state(render.STATE_DEPTH_TEST)
+        render.disable_state(render.STATE_CULL_FACE)
+        render.disable_state(render.STATE_STENCIL_TEST)
+        for _, camera_id in ipairs(cameras) do
+            local viewport = camera.get_viewport(camera_id)
+            render.set_viewport(viewport.x, viewport.y, viewport.z, viewport.w)
+            view = camera.get_view(camera_id)
+            render.set_view(view)
+            proj = camera.get_projection(camera_id)
+            render.set_projection(proj)
+            frustum = proj * view
+
+            render.draw(self.particle_early_pred, { frustum = frustum })
+            render.draw(self.sprites_pred, { frustum = frustum })
+            render.draw(self.particle_pred, { frustum = frustum })
+        end
+    end
+end
+function update(self)
+    local window_width = render.get_window_width()
+    local window_height = render.get_window_height()
+    if window_width <= 0 or window_height <= 0 then
+        return
+    end
+    render.set_render_target_size(self.world_render_target, window_width, window_height)
+    render.set_render_target_size(self.lights_render_target, window_width, window_height)
+    render.set_render_target_size(self.gui_render_target, window_width, window_height)
+    render.set_render_target_size(self.sprites_render_target, window_width, window_height)
+    -- clear color
+    render.set_render_target(self.world_render_target)
+    default_draw(self)
+    render.set_render_target(render.RENDER_TARGET_DEFAULT)
+
+    render.set_render_target(self.lights_render_target)
+    lights_draw(self)
+    render.set_render_target(render.RENDER_TARGET_DEFAULT)
+
+    render.set_render_target(self.sprites_render_target)
+    sprites_draw(self)
+    render.set_render_target(render.RENDER_TARGET_DEFAULT)
+
+    render.set_render_target(self.gui_render_target)
+    gui_draw_2(self, window_width, window_height)
+    render.set_render_target(render.RENDER_TARGET_DEFAULT)
+
+    --- render to quad
+    render.set_view(IDENTITY)
+    render.set_projection(IDENTITY)
+    render.set_viewport(0, 0, window_width, window_height)
+
+    -- --- set renderer state
+    render.set_depth_mask(false)
+    render.disable_state(render.STATE_DEPTH_TEST)
+    render.disable_state(render.STATE_STENCIL_TEST)
+    render.enable_state(render.STATE_BLEND)
+    render.set_blend_func(render.BLEND_SRC_ALPHA, render.BLEND_ONE_MINUS_SRC_ALPHA)
+    render.disable_state(render.STATE_CULL_FACE)
+
+    render.enable_material(hash("quad"))
+    render.enable_texture(0, self.world_render_target, render.BUFFER_COLOR0_BIT)
+    render.enable_texture(1, self.lights_render_target, render.BUFFER_COLOR0_BIT)
+    render.enable_texture(2, self.gui_render_target, render.BUFFER_COLOR0_BIT)
+    render.enable_texture(3, self.sprites_render_target, render.BUFFER_COLOR0_BIT)
+    clear_to(self.clear_color)
+    render.draw(self.quad_pred)
+    render.disable_texture(0)
+    render.disable_texture(1)
+    render.disable_texture(2)
+    render.disable_texture(3)
+    render.disable_material()
+end
+
+function on_message(self, message_id, message)
+    if CLEAR_COLOR == message_id then
+        self.clear_color = message.color
+    end
+    if AMBIENT_COLOR == message_id then
+        self.ambient_color = message.color
+    end
+end

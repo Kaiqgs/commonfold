@@ -1,0 +1,97 @@
+-- Coroutines = {}
+--
+-- function Coroutines.Create(func)
+-- 	local co = coroutine.create(func)
+-- 	table.insert(Coroutines, co)
+-- 	return co
+-- end
+--
+-- function Coroutines.Kill(co)
+--
+-- 	(Coroutines, co)
+-- end
+--
+-- function CoroutinesUpdate()
+-- end
+--
+-- function CreateNewAnimateRoutine(fn, count, framedelay, startdelay)
+-- 	framedelay = framedelay or 1
+-- 	startdelay = startdelay or 0
+-- 	local _func = function()
+-- 		for _ = 1, startdelay, 1 do
+-- 			yield()
+-- 		end
+-- 		for i = 1, count, 1 do
+-- 			local progress = i / count
+-- 			fn(i, progress)
+-- 			for _ = 1, framedelay, 1 do
+-- 				yield()
+-- 			end
+-- 		end
+-- 	end
+-- 	CoroutinesCreate(_func)
+-- 	return _func
+-- end
+--
+-- -- function CreateDefaultThreeBlinkRoutine()
+-- --
+-- -- end
+--
+-- function SetTimeout(fn, frames)
+-- 	CoroutinesCreate(function()
+-- 		for _ in irange(frames) do
+-- 			yield()
+-- 		end
+-- 		fn()
+-- 	end)
+-- end
+
+function init(self)
+	-- self.co = coroutine.create(function()
+	-- 	for _ = 1, 60, 1 do
+	-- 		print(string.format("frame %d", _))
+	-- 		coroutine.yield()
+	-- 	end
+	-- 	print("hello")
+	-- end)
+end
+
+function final(self)
+end
+
+function update(self, dt)
+	-- coroutine.resume(self.co)
+end
+
+function fixed_update(self, dt)
+	-- This function is called if 'Fixed Update Frequency' is enabled in the Engine section of game.project
+	-- Can be coupled with fixed updates of the physics simulation if 'Use Fixed Timestep' is enabled in
+	-- Physics section of game.project
+	-- Add update code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function on_message(self, message_id, message, sender)
+	-- Add message-handling code here
+	-- Learn more: https://defold.com/manuals/message-passing/
+	-- Remove this function if not needed
+end
+
+function on_input(self, action_id, action)
+	-- Add input-handling code here. The game object this script is attached to
+	-- must have acquired input focus:
+	--
+	--    msg.post(".", "acquire_input_focus")
+	--
+	-- All mapped input bindings will be received. Mouse and touch input will
+	-- be received regardless of where on the screen it happened.
+	-- Learn more: https://defold.com/manuals/input/
+	-- Remove this function if not needed
+end
+
+function on_reload(self)
+	-- Add reload-handling code here
+	-- Learn more: https://defold.com/manuals/hot-reload/
+	-- Remove this function if not needed
+end

@@ -1,0 +1,68 @@
+local spritezes = require("common.gameobjects.spritezes.spritezes")
+local util = require("common.util")
+
+go.property("image", resource.tile_source())
+go.property("material", resource.material())
+
+local factory_id = "#factory"
+
+local function create_sprites(self)
+    local sprite_list = {}
+    local sprite_map = {}
+    print(self.own_id)
+    ---@type SpritezesData
+    local spr_inst = spritezes.instances[self.own_id]
+    for i, name in ipairs(spr_inst.names) do
+        local parameters = {
+            image = self.image,
+            material = self.material,
+        }
+
+        -- print("factory url", self.factory_url)
+        -- print(self.image)
+        -- print(self.material)
+        -- pprint(parameters)
+        -- print("i", i, name)
+        local new_sprite = factory.create(self.factory_url, vmath.vector3(), vmath.quat(), parameters)
+
+        ---@type SpriteData
+        local sprite_data = {
+            object_id = new_sprite,
+            sprite_url = msg.url(nil, new_sprite, "sprite"),
+            script_url = msg.url(nil, new_sprite, "sprite_child"),
+            name = name,
+        }
+
+        go.set_parent(new_sprite, self.own_id)
+        go.set_position(vmath.vector3(), new_sprite)
+        -- pprint(spr_inst)
+        sprite.play_flipbook(sprite_data.sprite_url, spr_inst.compound_fn(name, spr_inst.animation))
+
+        sprite_map[name] = i
+        table.insert(sprite_list, sprite_data)
+    end
+    spr_inst.sprite_list = sprite_list
+    spr_inst.sprite_map = sprite_map
+end
+function init(self)
+    self.own_id = go.get_id()
+    self.factory_url = msg.url(factory_id)
+    self.register_listener = spritezes.on_register:subscribe(function(data)
+        if (data or { spritezes_id = hash("0") }).spritezes_id ~= (self or { own_id = hash("1") }).own_id then
+            return
+        end
+        -- WARN: this is executed outside `spritezes` context
+        self.tile_source = data.tile_source or self.tile_source
+        create_sprites(self)
+    end)
+end
+function final(self)
+    spritezes._delete(self.own_id, self.register_listener)
+end
+
+local message_mapping = {
+    [spritezes.messages.register] = function(self, message_id, message, sender)
+        create_sprites(self)
+    end,
+}
+on_message = util.on_message_map(message_mapping)

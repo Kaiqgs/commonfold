@@ -1,0 +1,53 @@
+local util = require("common.util")
+local stinger = require("common.gameobjects.stinger.stinger")
+go.property("is_shader", true)
+go.property("delay_open", 2)
+go.property("is_blocked", false)
+local gui_id = "#gui"
+function init(self)
+    -- if self.is_shader then
+    --     go.delete(gui_id, false)
+    -- else
+    --     go.delete("#", false)
+    -- end
+end
+
+local message_handler = util.on_message_map({
+    [stinger.open_stinger] = function(self, _, _, sender)
+        if self.is_blocked then
+            return
+        end
+        self.open_sender = sender
+        msg.post(gui_id, stinger.open_stinger)
+        self.is_blocked = true
+    end,
+    [stinger.opened_stinger] = function(self, _, message, _)
+        if not self.open_sender then
+            return
+        end
+        msg.post(self.open_sender, stinger.opened_stinger, message)
+        self.open_sender = nil
+        self.is_blocked = true
+    end,
+
+    [stinger.close_stinger] = function(self, _, _, sender)
+        self.close_sender = sender
+        msg.post(gui_id, stinger.close_stinger)
+        self.is_blocked = false
+    end,
+    [stinger.closed_stinger] = function(self, _, message, _)
+        if not self.close_sender then
+            return
+        end
+        msg.post(self.close_sender, stinger.closed_stinger, message)
+        self.close_sender = nil
+        self.is_blocked = false
+    end,
+})
+function on_message(self, message_id, message, sender)
+    if self.is_shader then
+        stinger.shader_animation(self, message_id, message, sender)
+    else
+        message_handler(self, message_id, message, sender)
+    end
+end

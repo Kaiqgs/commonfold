@@ -1,0 +1,31 @@
+local quad = require("common.gameobjects.quad.quad")
+local screen_id = "#screen"
+
+local function run_animation(self)
+    if #quad.animate_queue == 0 then
+        return
+    end
+    local animation_data = table.remove(quad.animate_queue, 1)
+    go.animate(
+        screen_id,
+        animation_data[1],
+        animation_data[2],
+        animation_data[3],
+        animation_data[4],
+        animation_data[5],
+        animation_data[6],
+        animation_data[7]
+    )
+end
+local function run_set(self)
+    if #quad.set_queue == 0 then
+        return
+    end
+    local set_data = table.remove(quad.set_queue, 1)
+    print("setting QUADSCRIPT", set_data[1], set_data[2])
+    go.set(screen_id, set_data[1], set_data[2])
+end
+function update(self, dt)
+    run_animation(self)
+    run_set(self)
+end

@@ -1,0 +1,38 @@
+local util = require("common.util")
+local stinger = require("common.gameobjects.stinger.stinger")
+
+---@diagnostic disable missing-parameter
+function init(self)
+    local stinger_node = gui.get_node("stinger")
+    self.stinger = stinger_node
+    gui.set_render_order(1)
+    gui.cancel_flipbook(self.stinger)
+end
+
+on_message = util.on_message_map({
+    [stinger.open_stinger] = function(self, _, _, sender)
+        gui.set_alpha(self.stinger, 1)
+        gui.play_flipbook(self.stinger, hash("stinger_open"), function()
+            msg.post(sender, stinger.opened_stinger)
+            self.is_open = true
+        end)
+    end,
+    [stinger.close_stinger] = function(self, _, _, sender)
+        gui.play_flipbook(self.stinger, hash("stinger_close"), function()
+            msg.post(sender, stinger.closed_stinger)
+            self.is_open = false
+        end)
+    end,
+})
+
+function on_message(self, message_id, message, sender)
+    if message_id == hash("close_stinger") then
+        gui.play_flipbook(self.stinger, hash("stinger_close"), function()
+            msg.post(sender, "closed_stinger")
+        end)
+    elseif message_id == hash("open_stinger") then
+        gui.play_flipbook(self.stinger, hash("stinger_open"), function()
+            msg.post(sender, "opened_stinger")
+        end)
+    end
+end

@@ -1,0 +1,117 @@
+local util = require("common.util")
+local stinger = require("common.gameobjects.stinger.stinger")
+go.property("first_scene", msg.url("url_2"))
+go.property("second_scene", msg.url("url_2"))
+go.property("third_scene", msg.url("url_3"))
+go.property("fourth_scene", msg.url("url_4"))
+go.property("fifth_scene", msg.url("url_5"))
+go.property("sixth_scene", msg.url("url_6"))
+go.property("seventh_scene", msg.url("url_7"))
+go.property("eighth_scene", msg.url("url_8"))
+
+go.property("initial_scene", 1)
+go.property("last_scene", 8)
+go.property("current_scene", 1)
+go.property("stinger_url", msg.url("/stinger#stinger"))
+
+function init(self)
+    self.transitioning = false
+    self.next_transition = nil
+    self.current_scene = self.initial_scene
+    self.listed_proxy_controllers = {
+        self.first_scene,
+        self.second_scene,
+        self.third_scene,
+        self.fourth_scene,
+        self.fifth_scene,
+        self.sixth_scene,
+        self.seventh_scene,
+        self.eighth_scene,
+    }
+    msg.post(self.listed_proxy_controllers[self.initial_scene], "start")
+    -- msg.post(self.stinger_url, stinger.open_stinger)
+end
+
+local function _refresh(self, fn)
+    if self.transitioning then
+        return
+    end
+
+    fn = fn or util.empty_fn
+    msg.post(self.stinger_url, stinger.close_stinger)
+
+    self.next_transition = function()
+        msg.post(self.listed_proxy_controllers[self.current_scene], "finish")
+        fn(self)
+        -- timer.delay(0.2, false, function()
+        -- end)
+    end
+    self.next_next_transition = function()
+        msg.post(self.listed_proxy_controllers[self.current_scene], "start")
+        if self.sender then
+            msg.post(self.sender, "scene_changed", { scene = self.current_scene })
+            self.sender = nil
+        end
+        self.transitioning = false
+    end
+    self.transitioning = true
+end
+
+local function next_scene(self)
+    _refresh(self, function(self_)
+        self_.current_scene = util.ModuloWrap(self_.current_scene, self_.last_scene, 1)
+    end)
+end
+
+local function prev_scene(self)
+    _refresh(self, function(self_)
+        self_.current_scene = util.ModuloWrap(self_.current_scene, self_.last_scene, -1)
+    end)
+end
+
+local function to_scene(self, index)
+    _refresh(self, function(self_)
+        self_.current_scene = index
+    end)
+end
+
+local message_mapping = {
+    [hash("next_scene")] = function(self, _, _, sender)
+        next_scene(self)
+        self.sender = sender
+    end,
+    [hash("previous_scene")] = function(self, _, _, sender)
+        prev_scene(self)
+        self.sender = sender
+    end,
+    [hash("to_scene")] = function(self, _, message, sender)
+        to_scene(self, message.index)
+        self.sender = sender
+    end,
+    [hash("proxy_loaded")] = function(self, _, _, _)
+        print("it really loaded")
+        msg.post(self.stinger_url, stinger.open_stinger)
+    end,
+    [hash("proxy_unloaded")] = function(self, message_id, message, sender)
+        self.next_next_transition()
+        self.next_next_transition = nil
+    end,
+    [stinger.closed_stinger] = function(self, message_id, message, sender)
+        self.next_transition()
+        self.next_transition = nil
+    end,
+    [stinger.opened_stinger] = false,
+    [hash("time_step")] = function(self, message_id, message, sender)
+        if not message.index or not self.listed_proxy_controllers[message.index] then
+            print("not found", message.index)
+            return
+        end
+        msg.post(
+            self.listed_proxy_controllers[message.index],
+            "set_time_step",
+            { mode = message.mode, factor = message.factor }
+        )
+    end,
+}
+
+on_message = util.on_message_map(message_mapping)

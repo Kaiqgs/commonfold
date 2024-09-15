@@ -1,0 +1,56 @@
+local random = require("common.random")
+local audio = require("common.audio")
+
+function init(self)
+    self.queues = {
+        play = {},
+    }
+    self.statuses = {}
+    self.pool_data = {}
+    audio.register(function(outline)
+        local self_url = msg.url()
+        local initiated_pools = {}
+        for prop, pool in pairs(outline) do
+            local url = msg.url(self_url.socket, self_url.path, prop)
+            print(self_url, "guten")
+            if self.pool_data[pool] == nil then
+                self.pool_data[pool] = {}
+            end
+            table.insert(self.pool_data[pool], url)
+
+            if not initiated_pools[pool] then
+                -- print("activated pool:", pool)
+                audio.pool_check(pool):subscribe(function(data)
+                    data.is_playing = self.statuses[pool] or false
+                end)
+                audio.pool_play(pool):subscribe(function(play_properties)
+                    table.insert(self.queues.play, { pool = pool, play_properties = play_properties or {} })
+                end)
+                audio.pool_stop(pool):subscribe(function(action)
+                    for _, stop_url in ipairs(self.pool_data[pool]) do
+                        sound.stop(stop_url)
+                    end
+                    self.statuses[pool] = false
+                end)
+                initiated_pools[pool] = true
+            end
+        end
+    end)
+end
+
+function update(self, dt)
+    if #self.queues.play > 0 then
+        local pool_to_play = table.remove(self.queues.play, 1)
+        -- print("just removed")
+        -- pprint(pool_to_play)
+        local pool = self.pool_data[pool_to_play.pool]
+        assert(pool, string.format("pool not found %s", tostring(pool)))
+        local play_url = random.choice(pool)
+        -- print("playing", play_url)
+        self.statuses[pool_to_play.pool] = true
+        -- msg.post(play_url, "play_sound", {  })
+        sound.play(play_url, pool_to_play.play_properties or {}, function()
+            self.statuses[pool_to_play.pool] = false
+        end)
+    end
+end
