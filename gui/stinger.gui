@@ -1,9 +1,15 @@
 script: "/common/stinger.gui_script"
-background_color {
-  x: 0.0
-  y: 0.0
-  z: 0.0
-  w: 0.0
+nodes {
+  size {
+    x: 200.0
+    y: 100.0
+  }
+  type: TYPE_BOX
+  id: "stinger"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_AUTO
+  enabled: false
+  visible: false
 }
 layers {
   name: "stinger"
@@ -13,7 +19,6 @@ layouts {
   name: "Landscape"
 }
 adjust_reference: ADJUST_REFERENCE_PARENT
-max_nodes: 512
 materials {
   name: "gui"
   material: "/builtins/materials/gui.material"

@@ -132,6 +132,33 @@ function M.min(list, getter)
     return list[lowestIndex]
 end
 
+function M.map(tbl, get_val)
+    for k, v in pairs(tbl) do
+        tbl[k] = get_val(v, k)
+    end
+    return tbl
+end
+
+function M.inverse_list(tbl)
+    local new = {}
+    local first = true
+    for k, v in pairs(tbl) do
+        new[v] = k
+        assert(first and k == 1 or not first, "needs to be list")
+        first = false
+    end
+    return new
+end
+
+function M.group_by_value(tbl)
+    local group = {}
+    for k, v in pairs(tbl) do
+        group[v] = group[v] or {}
+        table.insert(group[v], k)
+    end
+    return group
+end
+
 function M.max() end
 
 return M

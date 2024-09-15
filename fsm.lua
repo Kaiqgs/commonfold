@@ -1,6 +1,6 @@
 local _stateCounter = 0
-local FiniteStateBuilder = require("common.fsb")
 local _table = require("common._table")
+local fsb = require("common.fsb")
 local util = require("common.util")
 local function emptyFunc(...) end
 local function Contains(tbl, value)
@@ -193,7 +193,7 @@ local function _fsbAssert()
         run = "run",
     }
     local states = {
-        idle = FiniteStateBuilder()
+        idle = fsb.FiniteStateBuilder()
             :name(s.idle)
             :predicate_to(s.walk, function(self, _, ...)
                 return self.context.speed > 0 and self.context.speed < 50
@@ -202,7 +202,7 @@ local function _fsbAssert()
                 return self.context.speed >= 50
             end)
             :build(),
-        walk = FiniteStateBuilder()
+        walk = fsb.FiniteStateBuilder()
             :name(s.walk)
             :predicate_to(s.run, function(self, _, ...)
                 return self.context.speed >= 50
@@ -211,7 +211,7 @@ local function _fsbAssert()
                 return self.context.speed == 0
             end)
             :build(),
-        run = FiniteStateBuilder()
+        run = fsb.FiniteStateBuilder()
             :name(s.run)
             :predicate_to(s.walk, function(self, _, ...)
                 return self.context.speed < 50
